@@ -1,0 +1,27 @@
+{
+  "name": "web-complete/rbac",
+  "description": "Role Based Access Control",
+  "license": "MIT",
+  "keywords": ["rbac", "acl", "authorization"],
+  "authors": [
+    {
+      "name": "Maxim Kasatkin",
+      "email": "mvkasatkin@gmail.com"
+    },
+    {
+      "name": "Sergey Saraikin",
+      "email": "ssaraikin@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.0.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^6"
+  },
+  "autoload": {
+    "psr-4": {
+      "WebComplete\\rbac\\": "src"
+    }
+  }
+}

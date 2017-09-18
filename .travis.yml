@@ -1,0 +1,18 @@
+language: php
+
+php:
+  - 7.0
+  - 7.1
+
+before_script:
+  - composer self-update
+  - composer require satooshi/php-coveralls:dev-master
+  - composer install --prefer-source --no-interaction --dev
+  - composer install --dev
+
+script:
+  - phpunit
+  - phpunit --coverage-clover ./tests/logs/clover.xml
+
+after_script:
+  - php vendor/bin/coveralls -v
