@@ -5,6 +5,6 @@ namespace WebComplete\rbac\entity;
 abstract class Rule
 {
 
-    abstract public function execute($userId, array $params = null);
+    abstract public function check($userId, array $params = null) : bool;
 
 }
