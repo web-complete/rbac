@@ -5,10 +5,8 @@ namespace WebComplete\rbac\resource;
 use WebComplete\rbac\entity\Permission;
 use WebComplete\rbac\entity\Role;
 
-
 class FileResource extends AbstractResource
 {
-
     protected $roleUserIds = [];
 
     /**
@@ -31,17 +29,15 @@ class FileResource extends AbstractResource
      * @return Permission|null
      *
      */
-    public function fetchPermission($name): Permission
+    public function getPermission($name)
     {
-        return isset($this->permissions[$name])
-            ? $this->permissions[$name]
-            : null;
+        return $this->permissions[$name] ?? null;
     }
 
     /**
      * @return Role[]
      */
-    public function fetchRoles(): array
+    public function getRoles(): array
     {
         return $this->roles;
     }
@@ -51,12 +47,12 @@ class FileResource extends AbstractResource
      *
      * @return array|Role[]
      */
-    public function fetchRolesWithPermission($name): array
+    public function getRolesByPermission($name): array
     {
         $result = [];
         /** @var Role $role */
         foreach ($this->roles as $role) {
-            if($role->hasPermission($name)) {
+            if ($role->hasPermission($name)) {
                 $result[$role->getName()] = $role;
             }
         }
@@ -70,11 +66,9 @@ class FileResource extends AbstractResource
      * @return Role|null
      *
      */
-    public function fetchRole($name): Role
+    public function getRole($name)
     {
-        return isset($this->roles[$name])
-            ? $this->roles[$name]
-            : null;
+        return $this->roles[$name] ?? null;
     }
 
     /**
@@ -83,7 +77,7 @@ class FileResource extends AbstractResource
      */
     public function userAssignRole($userId, $roleName)
     {
-        if(!isset($this->roleUserIds[$roleName])) {
+        if (!isset($this->roleUserIds[$roleName])) {
             $this->roleUserIds[$roleName] = [];
         }
         $this->roleUserIds[$roleName][$userId] = true;
@@ -95,7 +89,7 @@ class FileResource extends AbstractResource
      */
     public function userRemoveRole($userId, $roleName)
     {
-        if(isset($this->roleUserIds[$roleName][$userId])) {
+        if (isset($this->roleUserIds[$roleName][$userId])) {
             unset($this->roleUserIds[$roleName][$userId]);
         }
     }
@@ -122,13 +116,13 @@ class FileResource extends AbstractResource
 
         $roleNames = [];
         foreach ($this->roleUserIds as $roleName => $userIds) {
-            if(isset($userIds[$userId])) {
+            if (isset($userIds[$userId])) {
                 $roleNames[] = $roleName;
             }
         }
 
         foreach ($roleNames as $roleName) {
-            if($role = $this->fetchRole($roleName)) {
+            if ($role = $this->getRole($roleName)) {
                 $result[$roleName] = $role;
             }
         }
@@ -142,24 +136,9 @@ class FileResource extends AbstractResource
     {
         $data = [
             'roles' => [],
-            'permissions' => []
+            'permissions' => [],
         ];
         file_put_contents($this->file, json_encode($data));
-    }
-
-    /**
-     */
-    public function clear()
-    {
-        $this->roles = [];
-        $this->rolesCreate = [];
-        $this->rolesUpdate = [];
-        $this->rolesDelete = [];
-        $this->permissions = [];
-        $this->permissionsCreate = [];
-        $this->permissionsUpdate = [];
-        $this->permissionsDelete = [];
-        $this->persist();
     }
 
     /**
@@ -167,31 +146,33 @@ class FileResource extends AbstractResource
      */
     private function load()
     {
-        if(file_exists($this->file)) {
+        if (file_exists($this->file)) {
             $data = json_decode(file_get_contents($this->file), true);
-            if(!is_array($data)) {
+            if (!is_array($data)) {
                 $data = [];
             }
-        }
-        else {
+        } else {
             $data = [];
         }
 
-        if(isset($data['roles']) && is_array($data['roles'])) {
-            foreach ($data['roles'] as $dataRole) {
+        if (isset($data['roles']) && is_array($data['roles'])) {
+            /** @var string[] $dataRoles */
+            $dataRoles = $data['roles'];
+            foreach ($dataRoles as $dataRole) {
                 /** @var Role $role */
-                $role = unserialize($dataRole);
+                $role = unserialize($dataRole, ['allowed_classes' => [Role::class]]);
                 $this->roles[$role->getName()] = $role;
             }
         }
 
-        if(isset($data['permissions']) && is_array($data['permissions'])) {
-            foreach ($data['permissions'] as $dataPermission) {
+        if (isset($data['permissions']) && is_array($data['permissions'])) {
+            /** @var string[] $dataPermissions */
+            $dataPermissions = $data['permissions'];
+            foreach ($dataPermissions as $dataPermission) {
                 /** @var Permission $permission */
-                $permission = unserialize($dataPermission);
+                $permission = unserialize($dataPermission, ['allowed_classes' => [Permission::class]]);
                 $this->permissions[$permission->getName()] = $permission;
             }
         }
     }
-
 }

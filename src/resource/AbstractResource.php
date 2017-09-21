@@ -6,19 +6,20 @@ use WebComplete\rbac\entity\Permission;
 use WebComplete\rbac\entity\Role;
 use WebComplete\rbac\exception\RbacException;
 
-
 abstract class AbstractResource
 {
-
+    /**
+     * @var Role[]
+     */
     protected $roles = [];
-    protected $rolesCreate = [];
-    protected $rolesUpdate = [];
-    protected $rolesDelete = [];
-
+    /**
+     * @var Permission[]
+     */
     protected $permissions = [];
-    protected $permissionsCreate = [];
-    protected $permissionsUpdate = [];
-    protected $permissionsDelete = [];
+    /**
+     * @var array [roleName => userIds]
+     */
+    protected $userAssignments = [];
 
     /**
      * @param $name
@@ -26,16 +27,34 @@ abstract class AbstractResource
      * @return Role
      * @throws RbacException
      */
-    public function createRole($name)
+    public function createRole($name): Role
     {
-        if($this->fetchRole($name)) {
+        if ($this->getRole($name)) {
             throw new RbacException('Role already exists');
         }
 
         $role = new Role($name);
         $this->roles[$name] = $role;
-        $this->rolesCreate[$name] = true;
         return $role;
+    }
+
+    /**
+     * @return Role[]
+     */
+    public function getRoles(): array
+    {
+        return $this->roles;
+    }
+
+    /**
+     * @param $name
+     *
+     * @return Role|null
+     *
+     */
+    public function getRole($name)
+    {
+        return $this->roles[$name] ?? null;
     }
 
     /**
@@ -44,17 +63,6 @@ abstract class AbstractResource
     public function deleteRole($name)
     {
         unset($this->roles[$name]);
-        $this->rolesDelete[$name] = true;
-    }
-
-    /**
-     * Mark for update
-     *
-     * @param $name
-     */
-    public function markRole($name)
-    {
-        $this->rolesUpdate[$name] = true;
     }
 
     /**
@@ -64,35 +72,23 @@ abstract class AbstractResource
      * @return Permission
      * @throws RbacException
      */
-    public function createPermission($name, $description)
+    public function createPermission($name, $description): Permission
     {
-        if($this->fetchPermission($name)) {
+        if ($this->getPermission($name)) {
             throw new RbacException('Permission already exists');
         }
 
         $permission = new Permission($name, $description);
         $this->permissions[$name] = $permission;
-        $this->permissionsCreate[$name] = true;
         return $permission;
     }
 
     /**
-     * @param $name
+     * @return Permission[]
      */
-    public function deletePermission($name)
+    public function getPermissions(): array
     {
-        unset($this->permissions[$name]);
-        $this->permissionsDelete[$name] = true;
-    }
-
-    /**
-     * Mark for update
-     *
-     * @param $name
-     */
-    public function markPermission($name)
-    {
-        $this->permissionsUpdate[$name] = $name;
+        return $this->permissions;
     }
 
     /**
@@ -101,39 +97,39 @@ abstract class AbstractResource
      * @return null|Permission
      *
      */
-    abstract public function fetchPermission($name) : Permission;
-
-    /**
-     * @return Role[]
-     */
-    abstract public function fetchRoles() : array;
-
-    /**
-     * @param $name
-     *
-     * @return array|Role[]
-     */
-    abstract public function fetchRolesWithPermission($name) : array;
+    public function getPermission($name)
+    {
+        return $this->permissions[$name] ?? null;
+    }
 
     /**
      * @param $name
-     *
-     * @return Role
-     *
      */
-    abstract public function fetchRole($name) : Role;
+    public function deletePermission($name)
+    {
+        unset($this->permissions[$name]);
+    }
 
     /**
      * @param $userId
      * @param $roleName
      */
-    abstract public function userAssignRole($userId, $roleName);
+    public function userAssignRole($userId, $roleName)
+    {
+        if (!isset($this->userAssignments[$roleName])) {
+            $this->userAssignments[$roleName] = [];
+        }
+        $this->userAssignments[$roleName][$userId] = true;
+    }
 
     /**
      * @param $userId
      * @param $roleName
      */
-    abstract public function userRemoveRole($userId, $roleName);
+    public function userRemoveRole($userId, $roleName)
+    {
+        unset($this->userAssignments[$roleName][$userId]);
+    }
 
     /**
      * @param $userId
@@ -141,21 +137,40 @@ abstract class AbstractResource
      *
      * @return bool
      */
-    abstract public function userHasRole($userId, $roleName) : bool;
+    public function userHasRole($userId, $roleName): bool
+    {
+        return isset($this->userAssignments[$roleName][$userId]);
+    }
 
     /**
      * @param $userId
      *
      * @return Role[]
      */
-    abstract public function userFetchRoles($userId) : array;
+    public function userFetchRoles($userId): array
+    {
+        $result = [];
+        foreach ($this->userAssignments as $roleName => $userIds) {
+            if (isset($userIds[$userId])) {
+                $result[$roleName] = $this->getRole($roleName);
+            }
+        }
+        return $result;
+    }
+
+    /**
+     */
+    public function clear()
+    {
+        $this->roles = [];
+        $this->permissions = [];
+    }
+
+    /**
+     */
+    abstract public function load();
 
     /**
      */
     abstract public function persist();
-
-    /**
-     */
-    abstract public function clear();
-
 }

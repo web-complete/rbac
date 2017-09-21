@@ -7,7 +7,6 @@ use WebComplete\rbac\resource\AbstractResource;
 use WebComplete\rbac\entity\Permission;
 use WebComplete\rbac\entity\Role;
 
-
 class Rbac
 {
 
@@ -22,6 +21,7 @@ class Rbac
     public function __construct(AbstractResource $resource)
     {
         $this->resource = $resource;
+        $this->resource->load();
     }
 
     /**
@@ -35,7 +35,7 @@ class Rbac
     public function createPermission($name, $description, Permission $parentPermission = null) : Permission
     {
         $permission = $this->resource->createPermission($name, $description);
-        if($parentPermission) {
+        if ($parentPermission) {
             $parentPermission->addChild($permission);
         }
 
@@ -44,6 +44,8 @@ class Rbac
 
     /**
      * @param $name
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function deletePermission($name)
     {
@@ -61,7 +63,7 @@ class Rbac
     public function createRole($name, Role $parentRole = null) : Role
     {
         $role = $this->resource->createRole($name);
-        if($parentRole) {
+        if ($parentRole) {
             $parentRole->addChild($role);
         }
 
@@ -70,13 +72,15 @@ class Rbac
 
     /**
      * @param $name
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function deleteRole($name)
     {
         $role = $this->getExistsRole($name);
-        $roles = $this->resource->fetchRoles();
+        $roles = $this->resource->getRoles();
         foreach ($roles as $r) {
-            if($r->hasChild($role)) {
+            if ($r->hasChild($role)) {
                 $r->removeChild($role);
             }
         }
@@ -106,7 +110,7 @@ class Rbac
         /** @var Role[] $roles */
         $roles = $roleName
             ? [$this->getExistsRole($roleName)]
-            : $this->resource->fetchRoles();
+            : $this->resource->getRoles();
 
         foreach ($roles as $role) {
             $this->resource->userRemoveRole($userId, $role->getName());
@@ -118,6 +122,7 @@ class Rbac
      * @param $roleName
      *
      * @return bool
+     * @throws \WebComplete\rbac\exception\RbacException
      *
      */
     public function userHasRole($userId, $roleName) : bool
@@ -131,7 +136,7 @@ class Rbac
      *
      * @return array roleNames
      */
-    public function userGetRoles($userId)
+    public function userGetRoles($userId): array
     {
         $result = [];
         foreach ($this->resource->userFetchRoles($userId) as $role) {
@@ -144,22 +149,25 @@ class Rbac
      * @param $userId
      *
      * @return string[] permissionNames
+     * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function userGetPermissions($userId)
+    public function userGetPermissions($userId): array
     {
         $result = [];
         foreach ($this->resource->userFetchRoles($userId) as $role) {
+            /** @var Role[] $userRoles */
             $userRoles = [$role->getName() => $role];
             $this->collectChildrenRoles($role, $userRoles);
-            foreach ($userRoles as $r) {
-                foreach ($r->getPermissionNames() as $permissionName) {
-                    $permission = $this->getExistsPermission($permissionName);
-                    $result[$permission->getName()] = $permission;
-                    /** @var Permission[] $childrenPermissions */
-                    $childrenPermissions = [];
-                    $this->collectChildrenPermissions($permission, $childrenPermissions);
-                    foreach ($childrenPermissions as $childPermission) {
-                        $result[$childPermission->getName()] = true;
+            foreach ($userRoles as $userRole) {
+                foreach ($userRole->getPermissionNames() as $permissionName) {
+                    if ($permission = $this->getExistsPermission($permissionName)) {
+                        $result[$permission->getName()] = $permission;
+                        /** @var Permission[] $childrenPermissions */
+                        $childrenPermissions = [];
+                        $this->collectChildrenPermissions($permission, $childrenPermissions);
+                        foreach ($childrenPermissions as $childPermission) {
+                            $result[$childPermission->getName()] = true;
+                        }
                     }
                 }
             }
@@ -173,14 +181,15 @@ class Rbac
      * @param array|null $params
      *
      * @return bool
+     * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function userCheckPermission($userId, $permissionName, array $params = null) : bool
+    public function userCheckPermission($userId, $permissionName, array $params = null): bool
     {
-        $roles = $this->resource->fetchRolesWithPermission($permissionName);
+        $roles = $this->getRolesByPermission($permissionName);
         foreach ($roles as $role) {
-            if($this->resource->userHasRole($userId, $role->getName())) {
+            if ($this->resource->userHasRole($userId, $role->getName())) {
                 $permission = $this->getExistsPermission($permissionName);
-                return $permission->checkRule($userId, $params);
+                return $permission ? $permission->checkRule($userId, $params) : false;
             }
         }
 
@@ -192,9 +201,9 @@ class Rbac
      *
      * @return Role|null
      */
-    public function getRole($name) : Role
+    public function getRole($name)
     {
-        return $this->resource->fetchRole($name);
+        return $this->resource->getRole($name);
     }
 
     /**
@@ -202,9 +211,9 @@ class Rbac
      *
      * @return Permission|null
      */
-    public function getPermission($name) : Permission
+    public function getPermission($name)
     {
-        return $this->resource->fetchPermission($name);
+        return $this->resource->getPermission($name);
     }
 
     /**
@@ -224,44 +233,14 @@ class Rbac
     }
 
     /**
-     * @param Role $role
-     * @param array $roles
-     */
-    private function collectChildrenRoles(Role $role, &$roles = [])
-    {
-        foreach ($role->getChildrenNames() as $childRoleName) {
-            $childRole = $this->getExistsRole($childRoleName);
-            $roles[$childRole->getName()] = $childRole;
-            if($childRole->getChildrenNames()) {
-                $this->collectChildrenRoles($childRole, $roles);
-            }
-        }
-    }
-
-    /**
-     * @param Permission $permission
-     * @param array $permissions
-     */
-    private function collectChildrenPermissions(Permission $permission, &$permissions = [])
-    {
-        foreach ($permission->getChildrenNames() as $childPermissionName) {
-            $childPermission = $this->getExistsPermission($childPermissionName);
-            $permissions[$childPermission->getName()] = $childPermission;
-            if($childPermission->getChildrenNames()) {
-                $this->collectChildrenPermissions($childPermission, $permissions);
-            }
-        }
-    }
-
-    /**
      * @param $roleName
      *
      * @return Role
      * @throws RbacException
      */
-    protected function getExistsRole($roleName)
+    protected function getExistsRole($roleName): Role
     {
-        if(!$role = $this->getRole($roleName)) {
+        if (!$role = $this->getRole($roleName)) {
             throw new RbacException('Role not found');
         }
 
@@ -271,16 +250,66 @@ class Rbac
     /**
      * @param $permissionName
      *
-     * @return Permission
+     * @return Permission|null
      * @throws RbacException
      */
     protected function getExistsPermission($permissionName)
     {
-        if(!$permission = $this->getPermission($permissionName)) {
+        if (!$permission = $this->getPermission($permissionName)) {
             throw new RbacException('Permission not found');
         }
 
         return $permission;
     }
 
+    /**
+     * @param $permissionName
+     *
+     * @return Role[]
+     */
+    protected function getRolesByPermission($permissionName): array
+    {
+        $result = [];
+        foreach ($this->resource->getRoles() as $role) {
+            if ($role->hasPermission($permissionName)) {
+                $result[$role->getName()] = $role;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * @param Role $role
+     * @param array $roles
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
+    private function collectChildrenRoles(Role $role, array &$roles = [])
+    {
+        foreach ($role->getChildrenNames() as $childRoleName) {
+            $childRole = $this->getExistsRole($childRoleName);
+            $roles[$childRole->getName()] = $childRole;
+            if ($childRole->getChildrenNames()) {
+                $this->collectChildrenRoles($childRole, $roles);
+            }
+        }
+    }
+
+    /**
+     * @param Permission $permission
+     * @param array $permissions
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
+    private function collectChildrenPermissions(Permission $permission, array &$permissions = [])
+    {
+        foreach ($permission->getChildrenNames() as $childPermissionName) {
+            if ($childPermission = $this->getExistsPermission($childPermissionName)) {
+                $permissions[$childPermission->getName()] = $childPermission;
+                if ($childPermission->getChildrenNames()) {
+                    $this->collectChildrenPermissions($childPermission, $permissions);
+                }
+            }
+        }
+    }
 }

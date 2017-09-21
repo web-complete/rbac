@@ -3,6 +3,7 @@
 use Mvkasatkin\mocker\Mocker;
 use WebComplete\rbac\entity\Permission;
 use WebComplete\rbac\entity\Role;
+use WebComplete\rbac\exception\RbacException;
 use WebComplete\rbac\Rbac;
 use WebComplete\rbac\resource\AbstractResource;
 
@@ -11,7 +12,9 @@ class RbacTest extends RbacTestCase
 
     public function testInstance()
     {
-        $resource = Mocker::create(AbstractResource::class);
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('load', 1)
+        ]);
         /** @var AbstractResource $resource */
         $rbac = new Rbac($resource);
         $this->assertInstanceOf(Rbac::class, $rbac);
@@ -33,12 +36,26 @@ class RbacTest extends RbacTestCase
 
     public function testDeletePermission()
     {
+        $adminPerm = new Permission('adminPerm', '');
         $resource = Mocker::create(AbstractResource::class, [
-            Mocker::method('deletePermission', 1, ['a'])
+            Mocker::method('getPermission', 1, ['adminPerm'])->returns($adminPerm),
+            Mocker::method('deletePermission', 1, ['adminPerm'])
         ]);
         /** @var AbstractResource $resource */
         $rbac = new Rbac($resource);
-        $rbac->deletePermission('a');
+        $rbac->deletePermission('adminPerm');
+    }
+
+    public function testDeleteNotExistPermission()
+    {
+        $this->expectException(RbacException::class);
+        $this->expectExceptionMessage('Permission not found');
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('getPermission')->returns(null)
+        ]);
+        /** @var AbstractResource $resource */
+        $rbac = new Rbac($resource);
+        $rbac->deletePermission('moderatorPerm');
     }
 
     public function testCreateRole()
@@ -63,9 +80,21 @@ class RbacTest extends RbacTestCase
             Mocker::method('removeChild', 1, [$role])->returns(true),
         ]);
         $resource = Mocker::create(AbstractResource::class, [
-            Mocker::method('fetchRole', 1, 'moderator')->returns($role),
-            Mocker::method('fetchRoles', 1)->returns([$otherRole]),
+            Mocker::method('getRole', 1, 'moderator')->returns($role),
+            Mocker::method('getRoles', 1)->returns([$otherRole]),
             Mocker::method('deleteRole', 1)->with('moderator')
+        ]);
+        /** @var AbstractResource $resource */
+        $rbac = new Rbac($resource);
+        $rbac->deleteRole('moderator');
+    }
+
+    public function testDeleteNotExistRole()
+    {
+        $this->expectException(RbacException::class);
+        $this->expectExceptionMessage('Role not found');
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('getRole')->returns(null)
         ]);
         /** @var AbstractResource $resource */
         $rbac = new Rbac($resource);
@@ -76,7 +105,7 @@ class RbacTest extends RbacTestCase
     {
         $role = new Role('moderator');
         $resource = Mocker::create(AbstractResource::class, [
-            Mocker::method('fetchRole', 1, 'moderator')->returns($role),
+            Mocker::method('getRole', 1, 'moderator')->returns($role),
             Mocker::method('userAssignRole', 1, [10, 'moderator']),
         ]);
         /** @var AbstractResource $resource */
@@ -88,7 +117,7 @@ class RbacTest extends RbacTestCase
     {
         $role = new Role('moderator');
         $resource = Mocker::create(AbstractResource::class, [
-            Mocker::method('fetchRole', 1, 'moderator')->returns($role),
+            Mocker::method('getRole', 1, 'moderator')->returns($role),
             Mocker::method('userRemoveRole', 1, [10, 'moderator']),
         ]);
         /** @var AbstractResource $resource */
@@ -100,7 +129,7 @@ class RbacTest extends RbacTestCase
     {
         $role = new Role('moderator');
         $resource = Mocker::create(AbstractResource::class, [
-            Mocker::method('fetchRoles', 1)->returns([$role]),
+            Mocker::method('getRoles', 1)->returns([$role]),
             Mocker::method('userRemoveRole', 1, [10, 'moderator']),
         ]);
         /** @var AbstractResource $resource */
@@ -112,7 +141,7 @@ class RbacTest extends RbacTestCase
     {
         $role = new Role('moderator');
         $resource = Mocker::create(AbstractResource::class, [
-            Mocker::method('fetchRole', 1, 'moderator')->returns($role),
+            Mocker::method('getRole', 1, 'moderator')->returns($role),
             Mocker::method('userHasRole', 1, [10, 'moderator'])->returns(true),
         ]);
         /** @var AbstractResource $resource */
@@ -157,12 +186,12 @@ class RbacTest extends RbacTestCase
 
         $resource = Mocker::create(AbstractResource::class, [
             Mocker::method('userFetchRoles', 1, 10)->returns([$adminRole]),
-            Mocker::method('fetchRole')->returnsMap([
+            Mocker::method('getRole')->returnsMap([
                 ['admin', $adminRole],
                 ['moderator', $moderatorRole],
                 ['user', $userRole],
             ]),
-            Mocker::method('fetchPermission')->returnsMap([
+            Mocker::method('getPermission')->returnsMap([
                 ['adminPerm', $adminPerm],
                 ['adminSubPerm', $adminSubPerm],
                 ['moderatorPerm', $moderatorPerm],
@@ -185,27 +214,73 @@ class RbacTest extends RbacTestCase
 
     public function testUserCheckPermission()
     {
+        $adminRole = new Role('adminRole');
+        /** @var Permission $adminPerm */
+        $adminPerm = Mocker::create(Permission::class, [
+            Mocker::method('checkRule', 1, [10, [1,2,3]])->returns(true)
+        ], ['adminPerm', '']);
+        $adminSubPerm = new Permission('adminSubPerm', '');
+        $adminPerm->addChild($adminSubPerm);
+        $adminRole->addPermission($adminPerm);
 
+        /** @var AbstractResource $resource */
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('userHasRole', 1, [10, 'adminRole'])->returns(true),
+            Mocker::method('getPermission', 1, 'adminPerm')->returns($adminPerm),
+        ]);
+
+        $rbac = new Rbac($resource);
+        $this->assertTrue($rbac->userCheckPermission(10, 'adminPerm', [1,2,3]));
+    }
+
+    public function testUserCheckPermissionFalse()
+    {
+        /** @var AbstractResource $resource */
+        $resource = Mocker::create(AbstractResource::class);
+        $rbac = new Rbac($resource);
+        $this->assertFalse($rbac->userCheckPermission(10, 'adminPerm', [1,2,3]));
     }
 
     public function testGetRole()
     {
-
+        $adminRole = new Role('adminRole');
+        /** @var AbstractResource $resource */
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('getRole', 1, 'adminRole')->returns($adminRole),
+        ]);
+        $rbac = new Rbac($resource);
+        $this->assertEquals($adminRole, $rbac->getRole('adminRole'));
     }
 
     public function testGetPermission()
     {
-
+        $adminPerm = new Permission('adminPerm', '');
+        /** @var AbstractResource $resource */
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('getPermission', 1, 'adminPerm')->returns($adminPerm),
+        ]);
+        $rbac = new Rbac($resource);
+        $this->assertEquals($adminPerm, $rbac->getPermission('adminPerm'));
     }
 
     public function testSave()
     {
-
+        /** @var AbstractResource $resource */
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('persist', 1),
+        ]);
+        $rbac = new Rbac($resource);
+        $rbac->save();
     }
 
     public function testClear()
     {
-
+        /** @var AbstractResource $resource */
+        $resource = Mocker::create(AbstractResource::class, [
+            Mocker::method('clear', 1),
+        ]);
+        $rbac = new Rbac($resource);
+        $rbac->clear();
     }
 
 }

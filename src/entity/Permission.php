@@ -6,7 +6,6 @@ use WebComplete\rbac\exception\RbacException;
 
 class Permission
 {
-
     protected $name;
     protected $description;
     protected $childrenNames = [];
@@ -16,7 +15,8 @@ class Permission
      * @param $name
      * @param $description
      */
-    public function __construct($name, $description) {
+    public function __construct($name, $description)
+    {
         $this->name = $name;
         $this->description = $description;
     }
@@ -50,7 +50,7 @@ class Permission
      *
      * @return bool
      */
-    public function hasChild(Permission $permission)
+    public function hasChild(Permission $permission): bool
     {
         return isset($this->childrenNames[$permission->getName()]);
     }
@@ -64,9 +64,9 @@ class Permission
     }
 
     /**
-     * @return mixed
+     * @return array
      */
-    public function getChildrenNames()
+    public function getChildrenNames(): array
     {
         return array_keys($this->childrenNames);
     }
@@ -95,10 +95,11 @@ class Permission
      * @param array $params
      *
      * @return bool
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function checkRule($userId, array $params) : bool
     {
-        if($ruleClass = $this->getRuleClass()) {
+        if ($ruleClass = $this->getRuleClass()) {
             $rule = new $ruleClass;
             $this->checkRuleInstance($rule);
             /** @var Rule $rule */
@@ -114,9 +115,8 @@ class Permission
      */
     protected function checkRuleInstance($rule)
     {
-        if(!$rule instanceof Rule) {
+        if (!$rule instanceof Rule) {
             throw new RbacException('Rule is not an instance of ' . Rule::class);
         }
     }
-
 }
