@@ -1,10 +1,17 @@
 <?php
 
-use WebComplete\rbac\entity\Rule;
+use WebComplete\rbac\entity\RuleInterface;
 
-class SomeRule extends Rule
+class SomeRule implements RuleInterface
 {
-    public function check($userId, array $params = null): bool
+
+    /**
+     * @param int|string $userId
+     * @param array|null $params
+     *
+     * @return bool
+     */
+    public function execute($userId, $params): bool
     {
         if ($userId !== 10) {
             return false;

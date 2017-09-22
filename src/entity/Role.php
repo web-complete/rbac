@@ -2,96 +2,135 @@
 
 namespace WebComplete\rbac\entity;
 
+use WebComplete\rbac\RbacInterface;
 
-class Role
+class Role implements RoleInterface
 {
 
-    protected $name;
-    protected $childrenNames = [];
-    protected $permissionNames = [];
-
     /**
-     * @param $name
+     * @var string
      */
-    public function __construct($name)
+    protected $name;
+    /**
+     * @var RbacInterface
+     */
+    protected $rbac;
+    /**
+     * @var array
+     */
+    protected $childrenNames = [];
+    /**
+     * @var array
+     */
+    protected $permissionNames = [];
+    /**
+     * @var array
+     */
+    protected $userIds = [];
+
+    public function __construct(string $name, RbacInterface $rbac)
     {
         $this->name = $name;
+        $this->rbac = $rbac;
     }
 
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
     /**
-     * @param Role $role
+     * @param RoleInterface $role
      */
-    public function addChild(Role $role)
+    public function addChild(RoleInterface $role)
     {
         $this->childrenNames[$role->getName()] = true;
     }
 
     /**
-     * @param Role $role
-     *
-     * @return bool
+     * @param string $roleName
      */
-    public function hasChild(Role $role)
+    public function removeChild(string $roleName)
     {
-        return isset($this->childrenNames[$role->getName()]);
+        unset($this->childrenNames[$roleName]);
     }
 
     /**
-     * @param Role $role
+     * @return RoleInterface[]
      */
-    public function removeChild(Role $role)
+    public function getChildren(): array
     {
-        unset($this->childrenNames[$role->getName()]);
+        $result = [];
+        $roleNames = \array_keys($this->childrenNames);
+        foreach ($roleNames as $name) {
+            $result[$name] = $this->rbac->getRole($name);
+        }
+        return $result;
     }
 
     /**
-     * @return array
+     * @param PermissionInterface $permission
      */
-    public function getChildrenNames()
-    {
-        return array_keys($this->childrenNames);
-    }
-
-    /**
-     * @param Permission $permission
-     */
-    public function addPermission(Permission $permission)
+    public function addPermission(PermissionInterface $permission)
     {
         $this->permissionNames[$permission->getName()] = true;
     }
 
     /**
-     * @param Permission $permission
+     * @param string $permissionName
      */
-    public function removePermission(Permission $permission)
+    public function removePermission(string $permissionName)
     {
-        unset($this->permissionNames[$permission->getName()]);
+        unset($this->permissionNames[$permissionName]);
     }
 
     /**
-     * @param Permission $permission
+     * @return PermissionInterface[]
+     */
+    public function getPermissions(): array
+    {
+        $result = [];
+        $permissionNames = \array_keys($this->permissionNames);
+        foreach ($permissionNames as $name) {
+            $result[$name] = $this->rbac->getPermission($name);
+        }
+        return $result;
+    }
+
+    /**
+     * @param string|int $userId
+     */
+    public function assignUserId($userId)
+    {
+        $this->userIds[$userId] = true;
+    }
+
+    /**
+     * @param $userId
      *
      * @return bool
      */
-    public function hasPermission(Permission $permission)
+    public function hasUserId($userId): bool
     {
-        return isset($this->permissionNames[$permission->getName()]);
+        return isset($this->userIds[$userId]);
     }
 
     /**
-     * @return array
+     * @param string|int $userId
      */
-    public function getPermissionNames()
+    public function removeUserId($userId)
     {
-        return array_keys($this->permissionNames);
+        unset($this->userIds[$userId]);
     }
 
+    /**
+     * @return string[]|int[]
+     */
+    public function getUserIds(): array
+    {
+        return \array_keys($this->userIds);
+    }
 }

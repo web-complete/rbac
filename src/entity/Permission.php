@@ -2,121 +2,102 @@
 
 namespace WebComplete\rbac\entity;
 
-use WebComplete\rbac\exception\RbacException;
+use WebComplete\rbac\RbacInterface;
 
-class Permission
+class Permission implements PermissionInterface
 {
+
+    /**
+     * @var string
+     */
     protected $name;
+    /**
+     * @var string
+     */
     protected $description;
+    /**
+     * @var RbacInterface
+     */
+    protected $rbac;
+    /**
+     * @var array
+     */
     protected $childrenNames = [];
+    /**
+     * @var string
+     */
     protected $ruleClass;
 
     /**
-     * @param $name
-     * @param $description
+     * @param string $name
+     * @param string $description
+     * @param RbacInterface $rbac
      */
-    public function __construct($name, $description)
+    public function __construct(string $name, string $description, RbacInterface $rbac)
     {
         $this->name = $name;
         $this->description = $description;
+        $this->rbac = $rbac;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->description;
     }
 
     /**
-     * @param Permission $permission
+     * @param PermissionInterface $permission
      */
-    public function addChild(Permission $permission)
+    public function addChild(PermissionInterface $permission)
     {
         $this->childrenNames[$permission->getName()] = true;
     }
 
     /**
-     * @param Permission $permission
-     *
-     * @return bool
+     * @param string $permissionName
      */
-    public function hasChild(Permission $permission): bool
+    public function removeChild(string $permissionName)
     {
-        return isset($this->childrenNames[$permission->getName()]);
+        unset($this->childrenNames[$permissionName]);
     }
 
     /**
-     * @param Permission $permission
+     * @return PermissionInterface[]
      */
-    public function removeChild(Permission $permission)
+    public function getChildren(): array
     {
-        unset($this->childrenNames[$permission->getName()]);
+        $result = [];
+        $permissionNames = \array_keys($this->childrenNames);
+        foreach ($permissionNames as $name) {
+            $result[$name] = $this->rbac->getPermission($name);
+        }
+        return $result;
     }
 
     /**
-     * @return array
+     * @param string $ruleClass
      */
-    public function getChildrenNames(): array
+    public function setRuleClass(string $ruleClass)
     {
-        return array_keys($this->childrenNames);
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getRuleClass()
-    {
-        return $this->ruleClass;
-    }
-
-    /**
-     * @param mixed $ruleClass
-     *
-     * @throws RbacException
-     */
-    public function setRuleClass($ruleClass)
-    {
-        $this->checkRuleInstance(new $ruleClass);
         $this->ruleClass = $ruleClass;
     }
 
     /**
-     * @param $userId
-     * @param array $params
-     *
-     * @return bool
-     * @throws \WebComplete\rbac\exception\RbacException
+     * @return string|null;
      */
-    public function checkRule($userId, array $params) : bool
+    public function getRuleClass()
     {
-        if ($ruleClass = $this->getRuleClass()) {
-            $rule = new $ruleClass;
-            $this->checkRuleInstance($rule);
-            /** @var Rule $rule */
-            return $rule->check($userId, $params);
-        }
-        return true;
-    }
-
-    /**
-     * @param $rule
-     *
-     * @throws RbacException
-     */
-    protected function checkRuleInstance($rule)
-    {
-        if (!$rule instanceof Rule) {
-            throw new RbacException('Rule is not an instance of ' . Rule::class);
-        }
+        return $this->ruleClass;
     }
 }

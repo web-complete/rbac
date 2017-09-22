@@ -1,51 +1,97 @@
 <?php
 
+use Mvkasatkin\mocker\Mocker;
 use WebComplete\rbac\entity\Permission;
 use WebComplete\rbac\entity\Role;
+use WebComplete\rbac\RbacInterface;
 
-class RoleTest extends \PHPUnit\Framework\TestCase
+class RoleTest extends RbacTestCase
 {
 
     public function testInstance()
     {
-        $role = new Role('adminRole', '');
-        $this->assertInstanceOf(Role::class, $role);
+        /** @var RbacInterface $rbac */
+        $rbac = Mocker::create(RbacInterface::class);
+        new Role('role1', $rbac);
+        $this->assertTrue(true);
     }
 
     public function testGetName()
     {
-        $role = new Role('adminRole', '');
-        $this->assertEquals('adminRole', $role->getName());
+        /** @var RbacInterface $rbac */
+        $rbac = Mocker::create(RbacInterface::class);
+        $role1 = new Role('role1', $rbac);
+        $this->assertEquals('role1', $role1->getName());
     }
 
-    public function testAddHasGetRemoveChild()
+    public function testGetChildren()
     {
-        $role = new Role('adminRole');
-        $role2 = new Role('adminRole2');
-        $role3 = new Role('adminRole3');
-        $role31 = new Role('adminRole3');
-        $role3->addChild($role31);
-        $role->addChild($role2);
-        $role->addChild($role3);
-        $this->assertTrue($role->hasChild($role2));
-        $this->assertEquals(['adminRole2', 'adminRole3'], $role->getChildrenNames());
-        $role->removeChild($role2);
-        $this->assertFalse($role->hasChild($role2));
+        /** @var RbacInterface $rbac */
+        $rbac = Mocker::create(RbacInterface::class);
+        $role2 = new Role('role2', $rbac);
+        $role3 = new Role('role3', $rbac);
+
+        $rbac = Mocker::create(RbacInterface::class, [
+            Mocker::method('getRole', 3)->returnsMap([
+                ['role2', $role2],
+                ['role3', $role3],
+            ])
+        ]);
+        $role1 = new Role('role1', $rbac);
+        $role1->addChild($role2);
+        $role1->addChild($role3);
+
+        $this->assertEquals([
+            'role2' => $role2,
+            'role3' => $role3
+        ], $role1->getChildren());
+
+        $role1->removeChild('role2');
+        $this->assertEquals([
+            'role3' => $role3
+        ], $role1->getChildren());
     }
 
-    public function testAddHasGetRemovePermission()
+    public function testGetPermissions()
     {
-        $role = new Role('adminRole');
-        $perm1 = new Permission('perm1', '');
-        $perm2 = new Permission('perm2', '');
-        $perm21 = new Permission('perm21', '');
-        $perm2->addChild($perm21);
-        $role->addPermission($perm1);
-        $role->addPermission($perm2);
-        $this->assertTrue($role->hasPermission($perm2));
-        $this->assertEquals(['perm1', 'perm2'], $role->getPermissionNames());
-        $role->removePermission($perm2);
-        $this->assertFalse($role->hasPermission($perm2));
+        /** @var RbacInterface $rbac */
+        $rbac = Mocker::create(RbacInterface::class);
+        $perm2 = new Permission('perm2', 'desc2', $rbac);
+        $perm3 = new Permission('perm3', 'desc3', $rbac);
+
+        $rbac = Mocker::create(RbacInterface::class, [
+            Mocker::method('getPermission', 3)->returnsMap([
+                ['perm2', $perm2],
+                ['perm3', $perm3],
+            ])
+        ]);
+        $role1 = new Role('role1', $rbac);
+        $role1->addPermission($perm2);
+        $role1->addPermission($perm3);
+
+        $this->assertEquals([
+            'perm2' => $perm2,
+            'perm3' => $perm3
+        ], $role1->getPermissions());
+
+        $role1->removePermission('perm2');
+        $this->assertEquals([
+            'perm3' => $perm3
+        ], $role1->getPermissions());
+    }
+
+    public function testGetUserIds()
+    {
+        /** @var RbacInterface $rbac */
+        $rbac = Mocker::create(RbacInterface::class);
+        $role1 = new Role('role1', $rbac);
+        $role1->assignUserId(1);
+        $role1->assignUserId(2);
+        $this->assertEquals([1,2], $role1->getUserIds());
+        $this->assertTrue($role1->hasUserId(2));
+        $role1->removeUserId(2);
+        $this->assertEquals([1], $role1->getUserIds());
+        $this->assertFalse($role1->hasUserId(2));
     }
 
 }
