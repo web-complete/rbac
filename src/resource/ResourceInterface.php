@@ -20,6 +20,7 @@ interface ResourceInterface
      * @param string $description
      *
      * @return PermissionInterface
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function createPermission(string $name, string $description): PermissionInterface;
 
@@ -59,9 +60,15 @@ interface ResourceInterface
 
     /**
      */
+    public function clear();
+
+    /**
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
     public function load();
 
     /**
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function save();
 }

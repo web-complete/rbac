@@ -16,9 +16,15 @@ class Rbac implements RbacInterface
      */
     protected $resource;
 
+    /**
+     * @param ResourceInterface $resource
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
     public function __construct(ResourceInterface $resource)
     {
         $this->resource = $resource;
+        $this->resource->load();
     }
 
     /**
@@ -55,6 +61,7 @@ class Rbac implements RbacInterface
      * @param string $description
      *
      * @return PermissionInterface
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function createPermission(string $name, string $description): PermissionInterface
     {
@@ -115,12 +122,21 @@ class Rbac implements RbacInterface
 
     /**
      */
+    public function clear()
+    {
+        $this->resource->clear();
+    }
+
+    /**
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
     public function load()
     {
         $this->resource->load();
     }
 
     /**
+     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function save()
     {

@@ -12,7 +12,9 @@ class RbacTest extends RbacTestCase
     public function testInstance()
     {
         /** @var ResourceInterface $resource */
-        $resource = Mocker::create(ResourceInterface::class);
+        $resource = Mocker::create(ResourceInterface::class, [
+            Mocker::method('load', 1)
+        ]);
         new Rbac($resource);
         $this->assertTrue(true);
     }
@@ -116,11 +118,21 @@ class RbacTest extends RbacTestCase
         $rbac->deletePermission('perm1');
     }
 
+    public function testClear()
+    {
+        /** @var ResourceInterface $resource */
+        $resource = Mocker::create(ResourceInterface::class, [
+            Mocker::method('clear', 1)
+        ]);
+        $rbac = new Rbac($resource);
+        $rbac->clear();
+    }
+
     public function testLoad()
     {
         /** @var ResourceInterface $resource */
         $resource = Mocker::create(ResourceInterface::class, [
-            Mocker::method('load', 1)
+            Mocker::method('load', 2)
         ]);
         $rbac = new Rbac($resource);
         $rbac->load();

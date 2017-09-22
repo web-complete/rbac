@@ -2,7 +2,7 @@
 
 namespace WebComplete\rbac\entity;
 
-use WebComplete\rbac\RbacInterface;
+use WebComplete\rbac\resource\ResourceInterface;
 
 class Permission implements PermissionInterface
 {
@@ -16,9 +16,9 @@ class Permission implements PermissionInterface
      */
     protected $description;
     /**
-     * @var RbacInterface
+     * @var ResourceInterface
      */
-    protected $rbac;
+    protected $resource;
     /**
      * @var array
      */
@@ -31,13 +31,13 @@ class Permission implements PermissionInterface
     /**
      * @param string $name
      * @param string $description
-     * @param RbacInterface $rbac
+     * @param ResourceInterface $resource
      */
-    public function __construct(string $name, string $description, RbacInterface $rbac)
+    public function __construct(string $name, string $description, ResourceInterface $resource)
     {
         $this->name = $name;
         $this->description = $description;
-        $this->rbac = $rbac;
+        $this->resource = $resource;
     }
 
     /**
@@ -80,7 +80,7 @@ class Permission implements PermissionInterface
         $result = [];
         $permissionNames = \array_keys($this->childrenNames);
         foreach ($permissionNames as $name) {
-            $result[$name] = $this->rbac->getPermission($name);
+            $result[$name] = $this->resource->getPermission($name);
         }
         return $result;
     }

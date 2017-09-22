@@ -2,7 +2,7 @@
 
 namespace WebComplete\rbac\entity;
 
-use WebComplete\rbac\RbacInterface;
+use WebComplete\rbac\resource\ResourceInterface;
 
 class Role implements RoleInterface
 {
@@ -12,9 +12,9 @@ class Role implements RoleInterface
      */
     protected $name;
     /**
-     * @var RbacInterface
+     * @var ResourceInterface
      */
-    protected $rbac;
+    protected $resource;
     /**
      * @var array
      */
@@ -28,10 +28,14 @@ class Role implements RoleInterface
      */
     protected $userIds = [];
 
-    public function __construct(string $name, RbacInterface $rbac)
+    /**
+     * @param string $name
+     * @param ResourceInterface $resource
+     */
+    public function __construct(string $name, ResourceInterface $resource)
     {
         $this->name = $name;
-        $this->rbac = $rbac;
+        $this->resource = $resource;
     }
 
     /**
@@ -66,7 +70,7 @@ class Role implements RoleInterface
         $result = [];
         $roleNames = \array_keys($this->childrenNames);
         foreach ($roleNames as $name) {
-            $result[$name] = $this->rbac->getRole($name);
+            $result[$name] = $this->resource->getRole($name);
         }
         return $result;
     }
@@ -95,7 +99,7 @@ class Role implements RoleInterface
         $result = [];
         $permissionNames = \array_keys($this->permissionNames);
         foreach ($permissionNames as $name) {
-            $result[$name] = $this->rbac->getPermission($name);
+            $result[$name] = $this->resource->getPermission($name);
         }
         return $result;
     }
