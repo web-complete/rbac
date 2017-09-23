@@ -109,6 +109,8 @@ class AuthorRule implements WebComplete\rbac\entity\RuleInterface
 ```php
 $p5 = $rbac->createPermission('post:author:update', 'Author can update his posts');
 $p6 = $rbac->createPermission('post:author:delete', 'Author can delete his posts');
+$p5->setRuleClass(AuthorRule::class);
+$p6->setRuleClass(AuthorRule::class);
 $authorRole->addPermission($p5);
 $authorRole->addPermission($p6);
 ```
