@@ -3,5 +3,5 @@
 /tmp
 /vendor
 /tests/logs
-/tests/runtime/*
+/tests/runtime/rbac.data
 composer.lock
