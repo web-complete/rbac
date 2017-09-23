@@ -112,6 +112,7 @@ $p6 = $rbac->createPermission('post:author:delete', 'Author can delete his posts
 $authorRole->addPermission($p5);
 $authorRole->addPermission($p6);
 ```
+
 - **And then check rights with parameters**
 
 ```php
