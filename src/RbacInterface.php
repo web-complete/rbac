@@ -14,5 +14,5 @@ interface RbacInterface extends ResourceInterface
      *
      * @return bool
      */
-    public function checkAccess($userId, $permissionName, $params): bool;
+    public function checkAccess($userId, $permissionName, $params = null): bool;
 }

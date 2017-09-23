@@ -92,5 +92,7 @@ class RoleTest extends RbacTestCase
         $role1->removeUserId(2);
         $this->assertEquals([1], $role1->getUserIds());
         $this->assertFalse($role1->hasUserId(2));
+        $role1->setUserIds([1,3,5]);
+        $this->assertEquals([1,3,5], $role1->getUserIds());
     }
 }

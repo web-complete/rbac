@@ -46,6 +46,11 @@ interface RoleInterface
     public function assignUserId($userId);
 
     /**
+     * @param array $userIds
+     */
+    public function setUserIds(array $userIds);
+
+    /**
      * @param $userId
      *
      * @return bool

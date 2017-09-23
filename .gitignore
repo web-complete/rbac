@@ -3,4 +3,5 @@
 /tmp
 /vendor
 /tests/logs
+/tests/runtime/*
 composer.lock

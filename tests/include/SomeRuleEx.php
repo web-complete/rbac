@@ -2,7 +2,7 @@
 
 use WebComplete\rbac\entity\RuleInterface;
 
-class SomeRule implements RuleInterface
+class SomeRuleEx
 {
 
     /**
@@ -10,12 +10,10 @@ class SomeRule implements RuleInterface
      * @param array|null $params
      *
      * @return bool
+     * @throws \Exception
      */
     public function execute($userId, $params): bool
     {
-        if (!$userId) {
-            return false;
-        }
-        return !($params !== ['qwe']);
+        return true;
     }
 }

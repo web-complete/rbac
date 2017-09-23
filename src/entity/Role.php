@@ -113,6 +113,16 @@ class Role implements RoleInterface
     }
 
     /**
+     * @param array $userIds
+     */
+    public function setUserIds(array $userIds)
+    {
+        foreach ($userIds as $userId) {
+            $this->assignUserId($userId);
+        }
+    }
+
+    /**
      * @param $userId
      *
      * @return bool

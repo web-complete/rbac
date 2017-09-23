@@ -2,27 +2,16 @@
 
 namespace WebComplete\rbac\resource;
 
-use WebComplete\rbac\entity\Permission;
 use WebComplete\rbac\entity\PermissionInterface;
-use WebComplete\rbac\entity\Role;
 use WebComplete\rbac\entity\RoleInterface;
-use WebComplete\rbac\exception\RbacException;
 
-class FileResource implements ResourceInterface
+class FileResource extends AbstractResource
 {
 
     /**
      * @var string
      */
     protected $file;
-    /**
-     * @var Role[]
-     */
-    protected $roles = [];
-    /**
-     * @var Permission[]
-     */
-    protected $permissions = [];
 
     public function __construct(string $file)
     {
@@ -30,104 +19,18 @@ class FileResource implements ResourceInterface
     }
 
     /**
-     * @param string $name
-     *
-     * @return RoleInterface
-     * @throws \WebComplete\rbac\exception\RbacException
-     */
-    public function createRole(string $name): RoleInterface
-    {
-        if (isset($this->roles[$name])) {
-            throw new RbacException('Role already exists');
-        }
-        $role = new Role($name, $this);
-        $this->roles[$name] = $role;
-        return $role;
-    }
-
-    /**
-     * @param string $name
-     * @param string $description
-     *
-     * @return PermissionInterface
-     * @throws \WebComplete\rbac\exception\RbacException
-     */
-    public function createPermission(string $name, string $description): PermissionInterface
-    {
-        if (isset($this->permissions[$name])) {
-            throw new RbacException('Permission already exists');
-        }
-        $permission = new Permission($name, $description, $this);
-        $this->permissions[$name] = $permission;
-        return $permission;
-    }
-
-    /**
-     * @return RoleInterface[]
-     */
-    public function getRoles(): array
-    {
-        return $this->roles;
-    }
-
-    /**
-     * @param string $name
-     *
-     * @return RoleInterface|null
-     */
-    public function getRole(string $name)
-    {
-        return $this->roles[$name] ?? null;
-    }
-
-    /**
-     * @param string $name
-     */
-    public function deleteRole(string $name)
-    {
-        unset($this->roles[$name]);
-    }
-
-    /**
-     * @return PermissionInterface[]
-     */
-    public function getPermissions(): array
-    {
-        return $this->permissions;
-    }
-
-    /**
-     * @param string $name
-     *
-     * @return PermissionInterface|null
-     */
-    public function getPermission(string $name)
-    {
-        return $this->permissions[$name] ?? null;
-    }
-
-    /**
-     * @param string $name
-     */
-    public function deletePermission(string $name)
-    {
-        unset($this->permissions[$name]);
-    }
-
-    /**
-     */
-    public function clear()
-    {
-        $this->roles = [];
-        $this->permissions = [];
-    }
-
-    /**
      * @throws \WebComplete\rbac\exception\RbacException
      */
     public function load()
     {
-        // TODO: Implement load() method.
+        $this->clear();
+
+        if (!file_exists($this->file) || (!$data = json_decode(file_get_contents($this->file), true))) {
+            $data = [];
+        }
+
+        $this->restorePermissions($data['permissions'] ?? []);
+        $this->restoreRoles($data['roles'] ?? []);
     }
 
     /**
@@ -135,6 +38,119 @@ class FileResource implements ResourceInterface
      */
     public function save()
     {
-        // TODO: Implement save() method.
+        $data = [
+            'roles' => [],
+            'permissions' => [],
+        ];
+        foreach ($this->roles as $role) {
+            $data['roles'][$role->getName()] = $this->roleToRow($role);
+        }
+        foreach ($this->permissions as $permission) {
+            $data['permissions'][$permission->getName()] = $this->permissionToRow($permission);
+        }
+
+        file_put_contents($this->file, json_encode($data));
+    }
+
+    /**
+     * @param RoleInterface $role
+     *
+     * @return array
+     */
+    protected function roleToRow(RoleInterface $role): array
+    {
+        $result = [];
+        $result['name'] = $role->getName();
+        $childrenNames = [];
+        foreach ($role->getChildren() as $child) {
+            $childrenNames[] = $child->getName();
+        }
+        $result['children'] = $childrenNames;
+        $permissionNames = [];
+        foreach ($role->getPermissions() as $permission) {
+            $permissionNames[] = $permission->getName();
+        }
+        $result['permissions'] = $permissionNames;
+        $result['userIds'] = $role->getUserIds();
+        return $result;
+    }
+
+    /**
+     * @param PermissionInterface $permission
+     *
+     * @return array
+     */
+    protected function permissionToRow(PermissionInterface $permission): array
+    {
+        $result = [];
+        $result['name'] = $permission->getName();
+        $result['description'] = $permission->getDescription();
+        $childrenNames = [];
+        foreach ($permission->getChildren() as $child) {
+            $childrenNames[] = $child->getName();
+        }
+        $result['children'] = $childrenNames;
+        $result['ruleClass'] = $permission->getRuleClass();
+        return $result;
+    }
+
+    /**
+     * @param array[] $permissionsData
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
+    protected function restorePermissions($permissionsData)
+    {
+        /** @var string[][] $permChildrenNames */
+        $permChildrenNames = [];
+
+        foreach ($permissionsData as $pData) {
+            $permission = $this->createPermission($pData['name'] ?? '', $pData['description'] ?? '');
+            $permission->setRuleClass($pData['ruleClass'] ?? '');
+            $permChildrenNames[$permission->getName()] = $pData['children'] ?? [];
+        }
+
+        foreach ($permChildrenNames as $permissionName => $childrenNames) {
+            foreach ($childrenNames as $childName) {
+                $permission = $this->getPermission($permissionName);
+                $child = $this->getPermission($childName);
+                if ($permission && $child) {
+                    $permission->addChild($child);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array[] $rolesData
+     *
+     * @throws \WebComplete\rbac\exception\RbacException
+     */
+    protected function restoreRoles($rolesData)
+    {
+        /** @var string[][] $rolesChildrenNames */
+        $rolesChildrenNames = [];
+
+        foreach ($rolesData as $rData) {
+            $role = $this->createRole($rData['name'] ?? '');
+            $role->setUserIds($rData['userIds'] ?? []);
+            $rolesChildrenNames[$role->getName()] = $rData['children'] ?? [];
+            $permissionNames = $rData['permissions'] ?? [];
+            foreach ($permissionNames as $permissionName) {
+                if ($permission = $this->getPermission($permissionName)) {
+                    $role->addPermission($permission);
+                }
+            }
+        }
+
+        foreach ($rolesChildrenNames as $roleName => $childrenNames) {
+            foreach ($childrenNames as $childName) {
+                $role = $this->getRole($roleName);
+                $child = $this->getRole($childName);
+                if ($role && $child) {
+                    $role->addChild($child);
+                }
+            }
+        }
     }
 }

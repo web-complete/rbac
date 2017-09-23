@@ -35,7 +35,7 @@ class Rbac implements RbacInterface
      * @return bool
      * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function checkAccess($userId, $permissionName, $params): bool
+    public function checkAccess($userId, $permissionName, $params = null): bool
     {
         $result = false;
         $roles = $this->getAllRolesByUserId($userId);
