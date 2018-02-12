@@ -6,10 +6,9 @@ interface RuleInterface
 {
 
     /**
-     * @param string|int $userId
      * @param array|null $params
      *
      * @return bool
      */
-    public function execute($userId, $params): bool;
+    public function execute($params): bool;
 }

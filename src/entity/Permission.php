@@ -2,6 +2,7 @@
 
 namespace WebComplete\rbac\entity;
 
+use WebComplete\rbac\exception\RbacException;
 use WebComplete\rbac\resource\ResourceInterface;
 
 class Permission implements PermissionInterface
@@ -99,5 +100,29 @@ class Permission implements PermissionInterface
     public function getRuleClass()
     {
         return $this->ruleClass;
+    }
+
+    /**
+     * @param array|null $params
+     *
+     * @return bool
+     * @throws RbacException
+     */
+    public function checkAccess($params = null): bool
+    {
+        $result = true;
+        if ($ruleClass = $this->getRuleClass()) {
+            try {
+                $rule = new $ruleClass;
+                if (!$rule instanceof RuleInterface) {
+                    throw new RbacException('Rule class: ' . $ruleClass . ' is not an ' . RuleInterface::class);
+                }
+
+                $result = $rule->execute($params);
+            } catch (\Throwable $e) {
+                throw new RbacException('Cannot instantiate rule class: ' . $ruleClass, $e);
+            }
+        }
+        return $result;
     }
 }

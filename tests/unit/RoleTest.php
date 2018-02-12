@@ -79,20 +79,4 @@ class RoleTest extends RbacTestCase
             'perm3' => $perm3
         ], $role1->getPermissions());
     }
-
-    public function testGetUserIds()
-    {
-        /** @var ResourceInterface $res */
-        $res = Mocker::create(ResourceInterface::class);
-        $role1 = new Role('role1', $res);
-        $role1->assignUserId(1);
-        $role1->assignUserId(2);
-        $this->assertEquals([1,2], $role1->getUserIds());
-        $this->assertTrue($role1->hasUserId(2));
-        $role1->removeUserId(2);
-        $this->assertEquals([1], $role1->getUserIds());
-        $this->assertFalse($role1->hasUserId(2));
-        $role1->setUserIds([1,3,5]);
-        $this->assertEquals([1,3,5], $role1->getUserIds());
-    }
 }

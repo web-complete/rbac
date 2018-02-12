@@ -21,9 +21,7 @@ class FileResourceTest extends TestCase
         $perm1->addChild($perm2);
         $role1 = $res->createRole('role1');
         $role2 = $res->createRole('role2');
-        $role2->setUserIds([4,5]);
         $role1->addChild($role2);
-        $role1->setUserIds([1,2,3]);
         $role1->addPermission($perm1);
 
         $res->save();
@@ -35,12 +33,10 @@ class FileResourceTest extends TestCase
         $this->assertCount(2, $res->getPermissions());
 
         $role1 = $res->getRole('role1');
-        $this->assertEquals([1,2,3], $role1->getUserIds());
         $roleChildren = $role1->getChildren();
         $this->assertCount(1, $roleChildren);
         $role2 = reset($roleChildren);
         $this->assertEquals('role2', $role2->getName());
-        $this->assertEquals([4,5], $role2->getUserIds());
         $permissions = $role1->getPermissions();
         $this->assertCount(1, $permissions);
         $perm1 = reset($permissions);

@@ -39,4 +39,11 @@ interface PermissionInterface
      * @return string|null;
      */
     public function getRuleClass();
+
+    /**
+     * @param array|null $params
+     *
+     * @return bool
+     */
+    public function checkAccess($params = null): bool;
 }

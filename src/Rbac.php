@@ -4,8 +4,6 @@ namespace WebComplete\rbac;
 
 use WebComplete\rbac\entity\PermissionInterface;
 use WebComplete\rbac\entity\RoleInterface;
-use WebComplete\rbac\entity\RuleInterface;
-use WebComplete\rbac\exception\RbacException;
 use WebComplete\rbac\resource\ResourceInterface;
 
 class Rbac implements RbacInterface
@@ -25,25 +23,6 @@ class Rbac implements RbacInterface
     {
         $this->resource = $resource;
         $this->resource->load();
-    }
-
-    /**
-     * @param string|int $userId
-     * @param string $permissionName
-     * @param array|null $params
-     *
-     * @return bool
-     * @throws \WebComplete\rbac\exception\RbacException
-     */
-    public function checkAccess($userId, $permissionName, $params = null): bool
-    {
-        $result = false;
-        $roles = $this->getAllRolesByUserId($userId);
-        $permissions = $this->getAllPermissionsByRoles($roles);
-        if (isset($permissions[$permissionName])) {
-            $result = $this->checkPermissionAccess($permissions[$permissionName], $userId, $params);
-        }
-        return $result;
     }
 
     /**
@@ -141,100 +120,5 @@ class Rbac implements RbacInterface
     public function save()
     {
         $this->resource->save();
-    }
-
-    /**
-     * @param $userId
-     *
-     * @return RoleInterface[]
-     */
-    protected function getAllRolesByUserId($userId): array
-    {
-        $result = [];
-        $roles = $this->getRoles();
-        foreach ($roles as $role) {
-            if ($role->hasUserId($userId)) {
-                $result[$role->getName()] = $role;
-                $this->collectChildrenRoles($role, $result);
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * @param RoleInterface $role
-     * @param $result
-     */
-    protected function collectChildrenRoles(RoleInterface $role, &$result)
-    {
-        foreach ($role->getChildren() as $childRole) {
-            $childRoleName = $childRole->getName();
-            if (!isset($result[$childRoleName])) {
-                $result[$childRoleName] = $childRole;
-                $this->collectChildrenRoles($childRole, $result);
-            }
-        }
-    }
-
-    /**
-     * @param RoleInterface[] $roles
-     *
-     * @return PermissionInterface[]
-     */
-    protected function getAllPermissionsByRoles(array $roles): array
-    {
-        $result = [];
-        foreach ($roles as $role) {
-            $permissions = $role->getPermissions();
-            foreach ($permissions as $permission) {
-                $permissionName = $permission->getName();
-                if (!isset($result[$permissionName])) {
-                    $result[$permissionName] = $permission;
-                    $this->collectChildrenPermissions($permission, $result);
-                }
-            }
-        }
-        return $result;
-    }
-
-    /**
-     * @param PermissionInterface $permission
-     * @param $result
-     */
-    protected function collectChildrenPermissions(PermissionInterface $permission, &$result)
-    {
-        foreach ($permission->getChildren() as $childPermission) {
-            $childPermissionName = $childPermission->getName();
-            if (!isset($result[$childPermissionName])) {
-                $result[$childPermissionName] = $childPermission;
-                $this->collectChildrenPermissions($childPermission, $result);
-            }
-        }
-    }
-
-    /**
-     * @param PermissionInterface $permission
-     * @param $userId
-     * @param $params
-     *
-     * @return bool
-     * @throws RbacException
-     */
-    protected function checkPermissionAccess(PermissionInterface $permission, $userId, $params): bool
-    {
-        $result = true;
-        if ($ruleClass = $permission->getRuleClass()) {
-            try {
-                $rule = new $ruleClass;
-                if (!$rule instanceof RuleInterface) {
-                    throw new RbacException('Rule class: ' . $ruleClass . ' is not an ' . RuleInterface::class);
-                }
-
-                $result = $rule->execute($userId, $params);
-            } catch (\Throwable $e) {
-                throw new RbacException('Cannot instantiate rule class: ' . $ruleClass, $e);
-            }
-        }
-        return $result;
     }
 }

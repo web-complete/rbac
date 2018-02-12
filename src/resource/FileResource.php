@@ -13,6 +13,9 @@ class FileResource extends AbstractResource
      */
     protected $file;
 
+    /**
+     * @param string $file
+     */
     public function __construct(string $file)
     {
         $this->file = $file;
@@ -34,7 +37,6 @@ class FileResource extends AbstractResource
     }
 
     /**
-     * @throws \WebComplete\rbac\exception\RbacException
      */
     public function save()
     {
@@ -71,7 +73,6 @@ class FileResource extends AbstractResource
             $permissionNames[] = $permission->getName();
         }
         $result['permissions'] = $permissionNames;
-        $result['userIds'] = $role->getUserIds();
         return $result;
     }
 
@@ -133,7 +134,6 @@ class FileResource extends AbstractResource
 
         foreach ($rolesData as $rData) {
             $role = $this->createRole($rData['name'] ?? '');
-            $role->setUserIds($rData['userIds'] ?? []);
             $rolesChildrenNames[$role->getName()] = $rData['children'] ?? [];
             $permissionNames = $rData['permissions'] ?? [];
             foreach ($permissionNames as $permissionName) {

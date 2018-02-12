@@ -36,34 +36,18 @@ interface RoleInterface
     public function removePermission(string $permissionName);
 
     /**
+     * @param bool $withChildren
+     *
      * @return PermissionInterface[]
      */
-    public function getPermissions(): array;
+    public function getPermissions(bool $withChildren = false): array;
 
     /**
-     * @param string|int $userId
-     */
-    public function assignUserId($userId);
-
-    /**
-     * @param array $userIds
-     */
-    public function setUserIds(array $userIds);
-
-    /**
-     * @param $userId
+     * @param string $permissionName
+     * @param array|null $params
      *
      * @return bool
+     * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function hasUserId($userId): bool;
-
-    /**
-     * @param string|int $userId
-     */
-    public function removeUserId($userId);
-
-    /**
-     * @return string[]|int[]
-     */
-    public function getUserIds(): array;
+    public function checkAccess($permissionName, $params = null): bool;
 }

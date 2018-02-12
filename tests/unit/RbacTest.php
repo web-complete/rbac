@@ -19,17 +19,6 @@ class RbacTest extends RbacTestCase
         $this->assertTrue(true);
     }
 
-    /**
-     * Full covering in the integration test
-     */
-    public function testCheckAccess()
-    {
-        /** @var ResourceInterface $resource */
-        $resource = Mocker::create(ResourceInterface::class);
-        $rbac = new Rbac($resource);
-        $this->assertFalse($rbac->checkAccess(10, 'some', [1,2,3]));
-    }
-
     public function testCreateRole()
     {
         /** @var ResourceInterface $resource */

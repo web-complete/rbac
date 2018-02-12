@@ -29,40 +29,42 @@ class RbacUsageTest extends TestCase
     public function testCheckAccess()
     {
         $rbac = $this->configureRbac();
-        $this->assertTrue($rbac->checkAccess(3, 'perm1'));
-        $this->assertTrue($rbac->checkAccess(3, 'perm2'));
-        $this->assertTrue($rbac->checkAccess(3, 'perm3'));
-        $this->assertFalse($rbac->checkAccess(3, 'perm4'));
-        $this->assertFalse($rbac->checkAccess(3, 'perm4', ['qwe']));
+        $this->assertTrue($rbac->getRole('role1')->checkAccess('perm1'));
+        $this->assertTrue($rbac->getRole('role1')->checkAccess('perm2'));
+        $this->assertTrue($rbac->getRole('role1')->checkAccess('perm3'));
+        $this->assertFalse($rbac->getRole('role1')->checkAccess('perm4'));
+        $this->assertFalse($rbac->getRole('role1')->checkAccess('perm4', ['qwe']));
 
-        $this->assertTrue($rbac->checkAccess(7, 'perm3'));
-        $this->assertFalse($rbac->checkAccess(7, 'perm4', ['qwe']));
+        $this->assertTrue($rbac->getRole('role2')->checkAccess('perm3'));
+        $this->assertFalse($rbac->getRole('role3')->checkAccess('perm4', ['qwe']));
 
-        $this->assertFalse($rbac->checkAccess(8, 'perm3'));
-        $this->assertFalse($rbac->checkAccess(8, 'perm4'));
-        $this->assertTrue($rbac->checkAccess(8, 'perm4', ['qwe']));
+        $this->assertFalse($rbac->getRole('role4')->checkAccess('perm3'));
+        $this->assertFalse($rbac->getRole('role4')->checkAccess('perm4'));
+        $this->assertTrue($rbac->getRole('role4')->checkAccess('perm4', ['qwe']));
 
-        $this->assertTrue($rbac->checkAccess(5, 'perm3'));
-        $this->assertTrue($rbac->checkAccess(5, 'perm4', ['qwe']));
-        $this->assertFalse($rbac->checkAccess(5, 'perm4'));
-        $this->assertFalse($rbac->checkAccess(5, 'perm2'));
-        $this->assertFalse($rbac->checkAccess(5, 'perm1'));
+        $this->assertTrue($rbac->getRole('role2')->checkAccess('perm3'));
+        $this->assertTrue($rbac->getRole('role2')->checkAccess('perm4', ['qwe']));
+        $this->assertFalse($rbac->getRole('role2')->checkAccess('perm4'));
+        $this->assertFalse($rbac->getRole('role2')->checkAccess('perm2'));
+        $this->assertFalse($rbac->getRole('role2')->checkAccess('perm1'));
     }
 
     public function testRuleNotExistsException()
     {
         $this->expectException(RbacException::class);
         $rbac = $this->configureRbac();
-        $rbac->getPermission('perm1')->setRuleClass('SomeRuleNotExists');
-        $rbac->checkAccess(1, 'perm1');
+        $permission = $rbac->getPermission('perm1');
+        $permission->setRuleClass('SomeRuleNotExists');
+        $permission->checkAccess([]);
     }
 
     public function testRuleException()
     {
         $this->expectException(RbacException::class);
         $rbac = $this->configureRbac();
-        $rbac->getPermission('perm1')->setRuleClass(SomeRuleEx::class);
-        $rbac->checkAccess(1, 'perm1');
+        $permission = $rbac->getPermission('perm1');
+        $permission->setRuleClass(SomeRuleEx::class);
+        $permission->checkAccess([]);
     }
 
     public function testCreateDuplicateRole()
@@ -95,22 +97,19 @@ class RbacUsageTest extends TestCase
         $perm4->setRuleClass(SomeRule::class);
 
         $role1 = $rbac->createRole('role1');
+        $role1->addPermission($perm1);
+        $role1->addPermission($perm2);
+
         $role2 = $rbac->createRole('role2');
         $role3 = $rbac->createRole('role3');
         $role4 = $rbac->createRole('role4');
-        $role1->setUserIds([1,2,3]);
-        $role2->setUserIds([4,5]);
-        $role3->setUserIds([6,7]);
-        $role4->setUserIds([8,9]);
         $role2->addChild($role3);
         $role2->addChild($role4);
-        $role1->addPermission($perm1);
-        $role1->addPermission($perm2);
+
         $role3->addPermission($perm3);
         $role4->addPermission($perm4);
         $rbac->save();
 
         return $rbac;
     }
-
 }

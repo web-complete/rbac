@@ -23,10 +23,6 @@ class Role implements RoleInterface
      * @var array
      */
     protected $permissionNames = [];
-    /**
-     * @var array
-     */
-    protected $userIds = [];
 
     /**
      * @param string $name
@@ -92,59 +88,61 @@ class Role implements RoleInterface
     }
 
     /**
+     * @param bool $withChildren
+     *
      * @return PermissionInterface[]
      */
-    public function getPermissions(): array
+    public function getPermissions(bool $withChildren = false): array
     {
         $result = [];
         $permissionNames = \array_keys($this->permissionNames);
+
         foreach ($permissionNames as $name) {
-            $result[$name] = $this->resource->getPermission($name);
+            $permission = $this->resource->getPermission($name);
+            $result[$name] = $permission;
         }
+
+        if ($withChildren) {
+            foreach ($result as $permission) {
+                $this->collectChildrenPermissions($permission, $result);
+            }
+            foreach ($this->getChildren() as $child) {
+                $result = \array_merge($result, $child->getPermissions(true));
+            }
+        }
+
         return $result;
     }
 
     /**
-     * @param string|int $userId
-     */
-    public function assignUserId($userId)
-    {
-        $this->userIds[$userId] = true;
-    }
-
-    /**
-     * @param array $userIds
-     */
-    public function setUserIds(array $userIds)
-    {
-        foreach ($userIds as $userId) {
-            $this->assignUserId($userId);
-        }
-    }
-
-    /**
-     * @param $userId
+     * @param string $permissionName
+     * @param array|null $params
      *
      * @return bool
      */
-    public function hasUserId($userId): bool
+    public function checkAccess($permissionName, $params = null): bool
     {
-        return isset($this->userIds[$userId]);
+        $permissions = $this->getPermissions(true);
+        if (isset($permissions[$permissionName])) {
+            if ($permissions[$permissionName]->checkAccess($params)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * @param string|int $userId
+     * @param PermissionInterface $permission
+     * @param $result
      */
-    public function removeUserId($userId)
+    protected function collectChildrenPermissions(PermissionInterface $permission, &$result)
     {
-        unset($this->userIds[$userId]);
-    }
-
-    /**
-     * @return string[]|int[]
-     */
-    public function getUserIds(): array
-    {
-        return \array_keys($this->userIds);
+        foreach ($permission->getChildren() as $childPermission) {
+            $childPermissionName = $childPermission->getName();
+            if (!isset($result[$childPermissionName])) {
+                $result[$childPermissionName] = $childPermission;
+                $this->collectChildrenPermissions($childPermission, $result);
+            }
+        }
     }
 }
