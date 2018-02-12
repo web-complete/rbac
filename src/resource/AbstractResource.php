@@ -21,16 +21,17 @@ abstract class AbstractResource implements ResourceInterface
 
     /**
      * @param string $name
+     * @param string $description
      *
      * @return RoleInterface
-     * @throws \WebComplete\rbac\exception\RbacException
+     * @throws RbacException
      */
-    public function createRole(string $name): RoleInterface
+    public function createRole(string $name, string $description = ''): RoleInterface
     {
         if (isset($this->roles[$name])) {
             throw new RbacException('Role already exists');
         }
-        $role = new Role($name, $this);
+        $role = new Role($name, $description, $this);
         $this->roles[$name] = $role;
         return $role;
     }
@@ -42,7 +43,7 @@ abstract class AbstractResource implements ResourceInterface
      * @return PermissionInterface
      * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function createPermission(string $name, string $description): PermissionInterface
+    public function createPermission(string $name, string $description = ''): PermissionInterface
     {
         if (isset($this->permissions[$name])) {
             throw new RbacException('Permission already exists');

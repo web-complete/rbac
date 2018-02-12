@@ -10,10 +10,11 @@ interface ResourceInterface
 
     /**
      * @param string $name
+     * @param string $description
      *
      * @return RoleInterface
      */
-    public function createRole(string $name): RoleInterface;
+    public function createRole(string $name, string $description = ''): RoleInterface;
 
     /**
      * @param string $name
@@ -22,7 +23,7 @@ interface ResourceInterface
      * @return PermissionInterface
      * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function createPermission(string $name, string $description): PermissionInterface;
+    public function createPermission(string $name, string $description = ''): PermissionInterface;
 
     /**
      * @return RoleInterface[]

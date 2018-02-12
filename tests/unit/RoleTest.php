@@ -12,24 +12,25 @@ class RoleTest extends RbacTestCase
     {
         /** @var ResourceInterface $res */
         $res = Mocker::create(ResourceInterface::class);
-        new Role('role1', $res);
+        new Role('role1', '', $res);
         $this->assertTrue(true);
     }
 
-    public function testGetName()
+    public function testGetNameDescription()
     {
         /** @var ResourceInterface $res */
         $res = Mocker::create(ResourceInterface::class);
-        $role1 = new Role('role1', $res);
+        $role1 = new Role('role1', 'Role description 1', $res);
         $this->assertEquals('role1', $role1->getName());
+        $this->assertEquals('Role description 1', $role1->getDescription());
     }
 
     public function testGetChildren()
     {
         /** @var ResourceInterface $res */
         $res = Mocker::create(ResourceInterface::class);
-        $role2 = new Role('role2', $res);
-        $role3 = new Role('role3', $res);
+        $role2 = new Role('role2', '', $res);
+        $role3 = new Role('role3', '', $res);
 
         $res = Mocker::create(ResourceInterface::class, [
             Mocker::method('getRole', 3)->returnsMap([
@@ -37,7 +38,7 @@ class RoleTest extends RbacTestCase
                 ['role3', $role3],
             ])
         ]);
-        $role1 = new Role('role1', $res);
+        $role1 = new Role('role1', '', $res);
         $role1->addChild($role2);
         $role1->addChild($role3);
 
@@ -65,7 +66,7 @@ class RoleTest extends RbacTestCase
                 ['perm3', $perm3],
             ])
         ]);
-        $role1 = new Role('role1', $res);
+        $role1 = new Role('role1', '', $res);
         $role1->addPermission($perm2);
         $role1->addPermission($perm3);
 

@@ -11,6 +11,11 @@ interface RoleInterface
     public function getName(): string;
 
     /**
+     * @return string
+     */
+    public function getDescription(): string;
+
+    /**
      * @param RoleInterface $role
      */
     public function addChild(RoleInterface $role);

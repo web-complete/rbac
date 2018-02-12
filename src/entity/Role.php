@@ -12,6 +12,10 @@ class Role implements RoleInterface
      */
     protected $name;
     /**
+     * @var string
+     */
+    protected $description;
+    /**
      * @var ResourceInterface
      */
     protected $resource;
@@ -26,11 +30,13 @@ class Role implements RoleInterface
 
     /**
      * @param string $name
+     * @param string $description
      * @param ResourceInterface $resource
      */
-    public function __construct(string $name, ResourceInterface $resource)
+    public function __construct(string $name, string $description, ResourceInterface $resource)
     {
         $this->name = $name;
+        $this->description = $description;
         $this->resource = $resource;
     }
 
@@ -40,6 +46,14 @@ class Role implements RoleInterface
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDescription(): string
+    {
+        return $this->description;
     }
 
     /**

@@ -63,6 +63,7 @@ class FileResource extends AbstractResource
     {
         $result = [];
         $result['name'] = $role->getName();
+        $result['description'] = $role->getDescription();
         $childrenNames = [];
         foreach ($role->getChildren() as $child) {
             $childrenNames[] = $child->getName();
@@ -133,7 +134,7 @@ class FileResource extends AbstractResource
         $rolesChildrenNames = [];
 
         foreach ($rolesData as $rData) {
-            $role = $this->createRole($rData['name'] ?? '');
+            $role = $this->createRole($rData['name'] ?? '', $rData['description'] ?? '');
             $rolesChildrenNames[$role->getName()] = $rData['children'] ?? [];
             $permissionNames = $rData['permissions'] ?? [];
             foreach ($permissionNames as $permissionName) {

@@ -27,12 +27,13 @@ class Rbac implements RbacInterface
 
     /**
      * @param string $name
+     * @param string $description
      *
      * @return RoleInterface
      */
-    public function createRole(string $name): RoleInterface
+    public function createRole(string $name, string $description = ''): RoleInterface
     {
-        return $this->resource->createRole($name);
+        return $this->resource->createRole($name, $description);
     }
 
     /**
@@ -42,7 +43,7 @@ class Rbac implements RbacInterface
      * @return PermissionInterface
      * @throws \WebComplete\rbac\exception\RbacException
      */
-    public function createPermission(string $name, string $description): PermissionInterface
+    public function createPermission(string $name, string $description = ''): PermissionInterface
     {
         return $this->resource->createPermission($name, $description);
     }
