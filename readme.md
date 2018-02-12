@@ -52,15 +52,6 @@ $moderatorRole->addPermission($p2);
 ...
 ```
 
-- **Configure user access rights**
-
-```php
-$adminRole->assignUserId(1);
-$moderatorRole->assignUserId(2);
-$moderatorRole->assignUserId(3);
-$authorRole->setUserIds([4,5,6,7,8,9,10]);
-```
-
 - **Persist state**
 
 ```php
@@ -70,7 +61,7 @@ $rbac->save();
 - **Checking access rights**
 
 ```php
-if($rbac->checkAccess($userId, 'post:moderate') {
+if($rbac->getRole($user->role)->checkAccess('post:moderate') {
     ... // User can moderate posts
 }
 // or add to your user's class something like:
@@ -88,16 +79,15 @@ class AuthorRule implements WebComplete\rbac\entity\RuleInterface
 {
 
     /**
-     * @param int|string $userId
      * @param array|null $params
      *
      * @return bool
      */
-    public function execute($userId, $params): bool
+    public function execute($params): bool
     {
         // @var Post $post
         if($post = $params['post'] ?? null) {
-            return $post->authorId === $userId;
+            return $post->authorId === ($params['userId'] ?? null);
         }
         return false;
     }
@@ -118,7 +108,7 @@ $authorRole->addPermission($p6);
 - **And then check rights with parameters**
 
 ```php
-if($rbac->checkAccess($userId, 'post:author:delete', ['post' => $post]) {
+if($rbac->checkAccess('post:author:delete', ['userId' => $userId, 'post' => $post]) {
     ... // The user is author of the post and can delete it
 }
 ```
